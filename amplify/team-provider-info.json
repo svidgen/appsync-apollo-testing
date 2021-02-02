@@ -10,6 +10,11 @@
       "StackName": "amplify-reactapolloapp-dev-144327",
       "StackId": "arn:aws:cloudformation:us-east-2:654007195465:stack/amplify-reactapolloapp-dev-144327/4eafc020-6597-11eb-af29-065ebb0fed20",
       "AmplifyAppId": "d2979qyr4awhtp"
+    },
+    "categories": {
+      "auth": {
+        "reactapolloapp6a02be1f": {}
+      }
     }
   }
 }
