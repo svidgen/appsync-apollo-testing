@@ -73,92 +73,74 @@ function App() {
   const [notes, setNotes] = useState([]);
   const [newNoteName, setNewNoteName] = useState('');
   const [newNoteDetails, setNewNoteDetails] = useState('');
-  const { notesLoading, notesError, notesResult } = useQuery(listNotes, {client: get_client()});
+  const [client, setClient] = useState(null);
+  // const { notesLoading, notesError, notesResult } = useQuery(listNotes, {client: get_client()});
 
   useEffect(() => {
-    // nada
-  });
-
-  // useEffect(() => {
-  //   // this is called after the component renders in the DOM.
-  //   // so ... anything we want to run after we're sure the thing
-  //   // is in the DOM goes here.
-  //   get_client().then(c => setClient(c));
-  //   if (client) {
-  //     client.query({query: listNotes}).then(result => {
-  //       setNotes(result.data.listNotes.items)
-  //     });
-  //     let onCreateSubscription = client.subscribe({query: onCreateNote}).subscribe({
-  //       next: (evt) => setNotes(n => [...n, evt.data.onCreateNote]),
-  //       error: (err) => console.warn('err', err),
-  //       complete: () => console.warn('done')
-  //     });
-  //     let onUpdateSubscription = client.subscribe({query: onUpdateNote}).subscribe({
-  //       next: (evt) => setNotes(_notes => _notes.map(note => {
-  //         if (note.id == evt.data.onUpdateNote.id) {
-  //           return evt.data.onUpdateNote; 
-  //         } else {
-  //           return note;
-  //         }
-  //       })),
-  //       error: (err) => console.warn('err', err),
-  //       complete: () => console.warn('done')
-  //     });
-  //     let onDeleteSubscription = client.subscribe({query: onDeleteNote}).subscribe({
-  //       next: (evt) => setNotes(_notes => _notes.filter(note => note.id != evt.data.onDeleteNote.id)),
-  //       error: (err) => console.warn('err', err),
-  //       complete: () => console.warn('done')
-  //     });
-  //     return () => {
-  //       onCreateSubscription.unsubscribe();
-  //       onUpdateSubscription.unsubscribe();
-  //       onDeleteSubscription.unsubscribe();
-  //     };
-  //   }
-  // }, [client]);
+      const client = get_client();
+      client.query({query: listNotes}).then(result => {
+        setNotes(result.data.listNotes.items)
+      });
+      let onCreateSubscription = client.subscribe({query: onCreateNote}).subscribe({
+        next: (evt) => setNotes(n => [...n, evt.data.onCreateNote]),
+        error: (err) => console.warn('err', err),
+        complete: () => console.warn('done')
+      });
+      let onUpdateSubscription = client.subscribe({query: onUpdateNote}).subscribe({
+        next: (evt) => setNotes(_notes => _notes.map(note => {
+          if (note.id == evt.data.onUpdateNote.id) {
+            return evt.data.onUpdateNote; 
+          } else {
+            return note;
+          }
+        })),
+        error: (err) => console.warn('err', err),
+        complete: () => console.warn('done')
+      });
+      let onDeleteSubscription = client.subscribe({query: onDeleteNote}).subscribe({
+        next: (evt) => setNotes(_notes => _notes.filter(note => note.id != evt.data.onDeleteNote.id)),
+        error: (err) => console.warn('err', err),
+        complete: () => console.warn('done')
+      });
+      return () => {
+        onCreateSubscription.unsubscribe();
+        onUpdateSubscription.unsubscribe();
+        onDeleteSubscription.unsubscribe();
+      };
+    // }
+  }, []); // [client]
 
   // if (loading) return <p>Loading ...</p>;
   // if (error) return <p>Error!</p>;
 
   function handleSubmit(e) {
     e.preventDefault();
-    get_client().then(client => {
-      client.mutate({
-        mutation: createNote,
-        variables: {
-          input: {
-            name: newNoteName,
-            details: newNoteDetails
-          }
+    get_client().mutate({
+      mutation: createNote,
+      variables: {
+        input: {
+          name: newNoteName,
+          details: newNoteDetails
         }
-      });
-      setNewNoteName('');
-      setNewNoteDetails('');
+      }
     });
+    setNewNoteName('');
+    setNewNoteDetails('');
   };
 
   function handleDelete(note) {
-    get_client().then(client => {
-      client.mutate({
-        mutation: deleteNote,
-        variables: {
-          input: {
-            id: note.id
-          }
+    get_client().mutate({
+      mutation: deleteNote,
+      variables: {
+        input: {
+          id: note.id
         }
-      });
+      }
     });
   };
 
-  if (notesLoading) return "Loading ...";
-  if (notesError) return `Crap. It's broken: ${notesError.message}`;
-
-  if (!notesResult) return (
-    <div>
-      <h3>Ruhoh. No notesResult!?</h3>
-      <pre>{notesResult}</pre>
-    </div>
-  );
+  // if (notesLoading) return "Loading ...";
+  // if (notesError) return `Crap. It's broken: ${notesError.message}`;
 
   return (
       <div className="App">
@@ -167,7 +149,7 @@ function App() {
         </header>
         <div>
           <div>
-            {notesResult.listNotes.map((note) => (
+            {notes.map((note) => (
               <div className='App-note' key={note.id}>
                 <div className='delete' onClick={e => handleDelete(note)}>X</div>
                 <h4 className='name'>{note.name}</h4>
