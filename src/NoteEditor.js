@@ -27,12 +27,31 @@ function NoteEditor() {
     loading: listNotesLoading,
     error: listNotesError,
     data: listNotesData,
+    subscribeToMore: listNotesSubscribeToMore
   } = useQuery(listNotesQuery);
   const [addNote, { data: createNoteData }] = useMutation(createNoteQuery);
   const [deleteNote] = useMutation(deleteNoteQuery);
 
   const { data: onCreateNoteData } = useSubscription(onCreateNoteQuery);
   const { data: onDeleteNoteData } = useSubscription(onDeleteNoteQuery);
+
+  useEffect(() => {
+    // returns an unsubscribe function
+    return listNotesSubscribeToMore({
+      document: onCreateNoteQuery,
+      variables: {},
+      updateQuery: (existing, { subscriptionData }) => {
+        if (!subscriptionData.data) return existing;
+        const newItem = subscriptionData.data.onCreateNote;
+        console.log("newitem", newItem, "existing", existing);
+        return Object.assign({}, existing, {
+            listNotes: {
+                items: [...existing.listNotes.items, newItem]
+            }
+        });
+      },
+    });
+  });
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -46,7 +65,7 @@ function NoteEditor() {
     });
     setNewNoteName("");
     setNewNoteDetails("");
-  };
+  }
 
   function handleDelete(note) {
     deleteNote({
@@ -56,7 +75,7 @@ function NoteEditor() {
         },
       },
     });
-  };
+  }
 
   if (listNotesLoading) return <p>Loading ...</p>;
   if (listNotesError) return <p>Error!</p>;
