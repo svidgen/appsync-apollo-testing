@@ -27,7 +27,7 @@ function NoteEditor() {
     loading: listNotesLoading,
     error: listNotesError,
     data: listNotesData,
-    subscribeToMore: listNotesSubscribeToMore
+    subscribeToMore: listNotesSubscribeToMore,
   } = useQuery(listNotesQuery);
   const [addNote, { data: createNoteData }] = useMutation(createNoteQuery);
   const [deleteNote] = useMutation(deleteNoteQuery);
@@ -36,8 +36,12 @@ function NoteEditor() {
   const { data: onDeleteNoteData } = useSubscription(onDeleteNoteQuery);
 
   useEffect(() => {
-    // returns an unsubscribe function
-    return listNotesSubscribeToMore({
+    // NOTE:
+    // we're watching for changes via subscription here to simulate how a real-world
+    // multi-user application might behave, wherein we want to see updates other users
+    // make in "real time".
+
+    let unsubscribeToCreate = listNotesSubscribeToMore({
       document: onCreateNoteQuery,
       variables: {},
       updateQuery: (existing, { subscriptionData }) => {
@@ -45,13 +49,35 @@ function NoteEditor() {
         const newItem = subscriptionData.data.onCreateNote;
         console.log("newitem", newItem, "existing", existing);
         return Object.assign({}, existing, {
-            listNotes: {
-                items: [...existing.listNotes.items, newItem]
-            }
+          listNotes: {
+            items: [...existing.listNotes.items, newItem],
+          },
         });
       },
     });
-  });
+
+    let unsubscribeToDelete = listNotesSubscribeToMore({
+      document: onDeleteNoteQuery,
+      variables: {},
+      updateQuery: (existing, { subscriptionData }) => {
+        if (!subscriptionData) return existing;
+        const removedItem = subscriptionData.data.onDeleteNote;
+        console.log("removedItem", removedItem, "existing", existing);
+        return Object.assign({}, existing, {
+          listNotes: {
+            items: existing.listNotes.items.filter(
+              (note) => note.id !== removedItem.id
+            ),
+          },
+        });
+      },
+    });
+
+    return () => {
+      unsubscribeToCreate();
+      unsubscribeToDelete();
+    };
+  }, []);
 
   function handleSubmit(e) {
     e.preventDefault();
@@ -74,6 +100,9 @@ function NoteEditor() {
           id: note.id,
         },
       },
+    }).catch(e => {
+        console.log(e);
+        alert("Ruhoh. Please try that again in a little while...");
     });
   }
 
