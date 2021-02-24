@@ -26,13 +26,11 @@ function createLink() {
     new ApolloLink((operation) => {
       let { query, variables } = operation;
       return new Observable(observer => {
-        let q = API.graphql({ query, variables });
-        let subscription = q.subscribe({
-          next: ({ value }) => observer.next(value),
-          error: e => observer.error(e),
-          complete: () => observer.complete()
-        });
-        return () => subscription.unsubscribe();
+        return API.graphql({ query, variables })
+          .map(result => result.value)
+          .subscribe(observer)
+          .unsubscribe
+        ;
       });
     }),
 
