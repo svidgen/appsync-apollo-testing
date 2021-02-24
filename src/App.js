@@ -14,8 +14,9 @@ import {
   useSubscription
 } from "@apollo/client";
 import { withAuthenticator } from "aws-amplify-react";
-import Amplify, { Auth } from "aws-amplify";
-import { createAuthLink } from "aws-appsync-auth-link";
+import Amplify, { API, Auth, graphqlOperation } from "aws-amplify";
+// import { createAuthLink } from "aws-appsync-auth-link";
+import createLink from "./apollo-links";
 import { createSubscriptionHandshakeLink } from 'aws-appsync-subscription-link';
 import aws_exports from "./aws-exports";
 // import { graphql } from "react-apollo";
@@ -33,6 +34,7 @@ import {
 let _client, _subscription;
 
 let config = Amplify.configure(aws_exports);
+
 const listNotes = gql(listNotesQuery);
 const createNote = gql(createNoteQuery);
 const deleteNote = gql(deleteNoteQuery);
@@ -45,20 +47,22 @@ function get_client() {
     return _client;
   }
 
-  const aws_auth_config = {
-    url: aws_exports.aws_appsync_graphqlEndpoint,
-    region: aws_exports.aws_appsync_region,
-    auth: {
-      type: aws_exports.aws_appsync_authenticationType,
-      jwtToken: Auth.user.signInUserSession.accessToken.jwtToken
-    }
-  };
-  const httpLink = new HttpLink({uri: aws_auth_config.url});
+  // const aws_auth_config = {
+  //   url: aws_exports.aws_appsync_graphqlEndpoint,
+  //   region: aws_exports.aws_appsync_region,
+  //   auth: {
+  //     type: aws_exports.aws_appsync_authenticationType,
+  //     jwtToken: Auth.user.signInUserSession.accessToken.jwtToken
+  //   }
+  // };
+  // const httpLink = new HttpLink({uri: aws_auth_config.url});
   
-  const link = ApolloLink.from([
-    createAuthLink(aws_auth_config),
-    createSubscriptionHandshakeLink(aws_auth_config, httpLink)
-  ]);
+  // const link = ApolloLink.from([
+  //   createAuthLink(aws_auth_config),
+  //   createSubscriptionHandshakeLink(aws_auth_config, httpLink)
+  // ]);
+
+  const link = createLink();
   
   _client = new ApolloClient({
     link,
@@ -78,14 +82,17 @@ function App() {
 
   useEffect(() => {
       const client = get_client();
+      
       client.query({query: listNotes}).then(result => {
         setNotes(result.data.listNotes.items)
       });
+
       let onCreateSubscription = client.subscribe({query: onCreateNote}).subscribe({
         next: (evt) => setNotes(n => [...n, evt.data.onCreateNote]),
         error: (err) => console.warn('err', err),
         complete: () => console.warn('done')
       });
+
       let onUpdateSubscription = client.subscribe({query: onUpdateNote}).subscribe({
         next: (evt) => setNotes(_notes => _notes.map(note => {
           if (note.id == evt.data.onUpdateNote.id) {
@@ -97,11 +104,13 @@ function App() {
         error: (err) => console.warn('err', err),
         complete: () => console.warn('done')
       });
+
       let onDeleteSubscription = client.subscribe({query: onDeleteNote}).subscribe({
         next: (evt) => setNotes(_notes => _notes.filter(note => note.id != evt.data.onDeleteNote.id)),
         error: (err) => console.warn('err', err),
         complete: () => console.warn('done')
       });
+
       return () => {
         onCreateSubscription.unsubscribe();
         onUpdateSubscription.unsubscribe();
