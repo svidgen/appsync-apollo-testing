@@ -11,8 +11,7 @@ import {
 } from "@apollo/client";
 import { withAuthenticator } from "aws-amplify-react";
 import Amplify, { Auth } from "aws-amplify";
-import { createAuthLink } from "aws-appsync-auth-link";
-import { createSubscriptionHandshakeLink } from 'aws-appsync-subscription-link';
+import createLink from "./apollo-links";
 import aws_exports from "./aws-exports";
 import NoteEditor from "./NoteEditor";
 
@@ -24,21 +23,8 @@ async function get_client() {
   if (_client) {
     return _client;
   }
-
-  const aws_auth_config = {
-    url: aws_exports.aws_appsync_graphqlEndpoint,
-    region: aws_exports.aws_appsync_region,
-    auth: {
-      type: aws_exports.aws_appsync_authenticationType,
-      jwtToken: (await Auth.currentSession()).getIdToken().getJwtToken()
-    }
-  };
-  const httpLink = new HttpLink({uri: aws_auth_config.url});
   
-  const link = ApolloLink.from([
-    createAuthLink(aws_auth_config),
-    createSubscriptionHandshakeLink(aws_auth_config, httpLink)
-  ]);
+  const link = createLink();
   
   _client = new ApolloClient({
     link,
